@@ -1,0 +1,14 @@
+{
+  "name": "calendar-html-ts-project",
+  "version": "1.0.0",
+  "description": "A basic HTML + TypeScript project.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "node --watch src/index.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "typescript": "^5.8.3"
+  }
+}
