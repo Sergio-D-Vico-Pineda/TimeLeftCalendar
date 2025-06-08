@@ -17,30 +17,6 @@ Este calendario no gestiona ni almacena eventos; su función principal es mostra
 
 ---
 
-## Primeros Pasos
-
-1. Clona el repositorio
-
-   ```bash
-   git clone https://github.com/Sergio-D-Vico-Pineda/TimeLeftCalendar.git
-   ```
-
-2. Instala las dependencias
-
-   ```bash
-   npm install
-   ```
-
-3. Inicia el servidor de desarrollo
-
-   ```bash
-   npm run start
-   ```
-
-4. Abre [http://localhost:3000](http://localhost:3000) en tu navegador
-
----
-
 ## Estructura del Proyecto
 
 - `src/` — Código fuente  
@@ -84,30 +60,6 @@ This calendar does not manage or store events—its main function is to display 
 - Countdown to a single target date  
 - Responsive, clean interface  
 - Lightweight and easy to use  
-
----
-
-## Getting Started
-
-1. Clone the repository
-
-   ```bash
-   git clone https://github.com/Sergio-D-Vico-Pineda/TimeLeftCalendar.git
-   ```
-
-2. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-3. Start the development server
-
-   ```bash
-   npm run start
-   ```
-
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ---
 
