@@ -10,7 +10,9 @@ class Calendar {
     private selectedDate: Date | null = null;
     private inputs: Inputs | null = null;
     private customizationPanel: HTMLDivElement;
-    private customDays: Map<string, { excluded?: boolean; customHours?: number }> = new Map(); constructor(container: HTMLElement) {
+    private customDays: Map<string, { excluded?: boolean; customHours?: number }> = new Map();
+
+    constructor(container: HTMLElement) {
         this.currentDate = new Date();
         this.calendarElement = document.createElement('div');
         this.calendarElement.className = 'calendar';
@@ -22,12 +24,16 @@ class Calendar {
         container.appendChild(this.customizationPanel);
 
         this.render();
-    } public setInputs(inputs: Inputs): void {
+    }
+
+    public setInputs(inputs: Inputs): void {
         this.inputs = inputs;
         // Load custom days from inputs
         this.customDays = inputs.getCustomDays();
         this.render();
-    } public refresh(): void {
+    }
+
+    public refresh(): void {
         this.render();
     }
 
@@ -49,7 +55,8 @@ class Calendar {
         const nextButton = document.createElement('button');
         nextButton.className = 'calendar-nav';
         nextButton.textContent = '›';
-        nextButton.addEventListener('click', () => this.nextMonth());        const title = document.createElement('div');
+        nextButton.addEventListener('click', () => this.nextMonth());
+        const title = document.createElement('div');
         title.className = 'calendar-title';
         title.textContent = this.getMonthYearString();
 
@@ -69,20 +76,22 @@ class Calendar {
         });
 
         // Add days
-        this.addDaysToGrid(grid);        // Create info section
+        this.addDaysToGrid(grid);
+
+        // Create info section
         const info = document.createElement('div');
         info.className = 'calendar-info';
-        
+
         if (this.selectedDate) {
             const dateText = document.createElement('span');
             dateText.textContent = this.selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-            
+
             const unselectButton = document.createElement('button');
             unselectButton.className = 'unselect-button-info';
             unselectButton.textContent = '✕';
             unselectButton.title = 'Deseleccionar día';
             unselectButton.addEventListener('click', () => this.unselectDate());
-            
+
             info.appendChild(dateText);
             info.appendChild(unselectButton);
         } else {
@@ -273,12 +282,14 @@ class Calendar {
         if (this.inputs) {
             this.inputs.setCustomDays(this.customDays);
         }
-    } private addDaysToGrid(grid: HTMLDivElement): void {
+    }
+
+    private addDaysToGrid(grid: HTMLDivElement): void {
         const firstDay = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth(), 1);
         const lastDay = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() + 1, 0);
         const startDate = new Date(firstDay);
 
-        // Adjust for Monday as first day of week (0=Sunday, 1=Monday, etc.)
+        // Adjust for Monday as first day of week
         let dayOffset = firstDay.getDay() - 1;
         if (dayOffset < 0) dayOffset = 6; // Handle Sunday (0) -> make it 6
         startDate.setDate(startDate.getDate() - dayOffset);
@@ -376,7 +387,9 @@ class Calendar {
 
             grid.appendChild(dayElement);
         }
-    }    private selectDate(date: Date): void {
+    }
+
+    private selectDate(date: Date): void {
         if (date.getMonth() === this.currentDate.getMonth()) {
             this.selectedDate = new Date(date);
             this.render();
@@ -397,13 +410,10 @@ class Calendar {
     }
 
     private getMonthYearString(): string {
-        /* const months = [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
-        ];
-        return `${months[this.currentDate.getMonth()]} ${this.currentDate.getFullYear()}`; */
-        return this.currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-    } private previousMonth(): void {
+        return this.currentDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+    }
+
+    private previousMonth(): void {
         this.currentDate.setMonth(this.currentDate.getMonth() - 1);
         this.selectedDate = null; // Clear selection when changing months
         this.render();
@@ -464,7 +474,9 @@ class Calendar {
         }
 
         this.calendarElement.appendChild(hoursDisplay);
-    } private calculatePassedHours(initialDate: Date, endDate: Date): number {
+    }
+
+    private calculatePassedHours(initialDate: Date, endDate: Date): number {
         if (!this.inputs) return 0;
 
         const excludedWeekdays = this.inputs.getExcludedWeekdays();
@@ -499,7 +511,9 @@ class Calendar {
         }
 
         return totalHours;
-    } private calculateExpectedEndDate(): Date | null {
+    }
+
+    private calculateExpectedEndDate(): Date | null {
         if (!this.inputs) return null;
 
         const initialDate = this.inputs.getInitialDate();
@@ -626,7 +640,9 @@ class Inputs {
     private totalHours: number = 0;
     private excludedWeekdays: Set<number> = new Set();
     private customDays: Map<string, { excluded?: boolean; customHours?: number }> = new Map();
-    private readonly STORAGE_KEY = 'calendar-config'; constructor(container: HTMLElement, calendar: Calendar) {
+    private readonly STORAGE_KEY = 'calendar-config';
+
+    constructor(container: HTMLElement, calendar: Calendar) {
         this.calendar = calendar;
 
         // Load saved values from localStorage
@@ -684,7 +700,9 @@ class Inputs {
         } catch (error) {
             console.warn('Error loading calendar configuration from localStorage:', error);
         }
-    } private saveToStorage(): void {
+    }
+
+    private saveToStorage(): void {
         try {
             const config = {
                 initialDate: this.initialDate ? this.initialDate.toISOString() : null,
@@ -820,7 +838,8 @@ class Inputs {
 
         weekdays.forEach(weekday => {
             const checkboxContainer = document.createElement('div');
-            checkboxContainer.className = 'weekday-checkbox'; const checkbox = document.createElement('input');
+            const checkbox = document.createElement('input');
+            checkboxContainer.className = 'weekday-checkbox';
             checkbox.type = 'checkbox';
             checkbox.id = `weekday-${weekday.value}`;
             checkbox.value = weekday.value.toString();
@@ -910,7 +929,9 @@ class Inputs {
 
     public getInitialDate(): Date | null {
         return this.initialDate;
-    } public getHoursPerDay(): number {
+    }
+
+    public getHoursPerDay(): number {
         return this.hoursPerDay;
     }
 
@@ -931,13 +952,11 @@ class Inputs {
         this.saveToStorage();
     }
 }
+
 // Initialize the calendar
 const title = document.createElement('h1');
 title.textContent = 'Calculadora de días';
-title.style.textAlign = 'center';
-title.style.margin = '20px 0';
-title.style.color = '#333';
-title.style.fontFamily = 'Arial, sans-serif';
+title.classList.add('title');
 app.appendChild(title);
 
 const calendar = new Calendar(app);

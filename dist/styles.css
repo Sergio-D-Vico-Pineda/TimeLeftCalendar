@@ -4,6 +4,13 @@
     box-sizing: border-box;
 }
 
+.title {
+    text-align: center;
+    margin: 20px 0;
+    color: #333;
+    font-family: Arial, sans-serif;
+}
+
 .calendar {
     max-width: 400px;
     margin: 20px auto;
@@ -17,7 +24,7 @@
 .calendar-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 15px;
+    padding: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -179,7 +186,7 @@
 }
 
 .calendar-info {
-    padding: 15px;
+    padding: 15px 10px;
     background: #f8f9fa;
     border-top: 1px solid #ddd;
     text-align: center;
@@ -197,15 +204,12 @@
     color: white;
     font-size: 12px;
     cursor: pointer;
-    padding: 4px 8px;
     border-radius: 12px;
     transition: background 0.2s ease;
-    min-width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    min-width: 16px;
+    height: 16px;
     font-weight: bold;
+    text-align: center;
 }
 
 .unselect-button-info:hover {
@@ -285,15 +289,12 @@
 /* Hours display above calendar */
 .hours-display {
     max-width: 400px;
-    margin: 10px auto 20px;
     padding: 15px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    border-radius: 8px;
     text-align: center;
     font-weight: bold;
     font-size: 16px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .hours-display.error {
