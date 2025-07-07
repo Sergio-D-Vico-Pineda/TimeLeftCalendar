@@ -66,7 +66,7 @@ class Calendar {
 
         // Create calendar grid
         const grid = document.createElement('div');
-        grid.className = 'calendar-grid';        // Add day headers
+        grid.className = 'calendar-grid';
         const dayHeaders = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
         dayHeaders.forEach(day => {
             const dayHeader = document.createElement('div');
@@ -90,7 +90,7 @@ class Calendar {
             unselectButton.className = 'unselect-button-info';
             unselectButton.textContent = '✕';
             unselectButton.title = 'Deseleccionar día';
-            unselectButton.addEventListener('click', () => this.unselectDate());
+            unselectButton.addEventListener('click', this.unselectDate.bind(this));
 
             info.appendChild(dateText);
             info.appendChild(unselectButton);
@@ -391,16 +391,17 @@ class Calendar {
 
     private selectDate(date: Date): void {
         if (date.getMonth() === this.currentDate.getMonth()) {
-            this.selectedDate = new Date(date);
+            const datea = new Date(date);
+            datea.setHours(11, 59, 59, 59); // Normalize time to 11:59:59:59
+            this.selectedDate = datea;
             this.render();
-            console.log('Selected date:', date.toDateString());
         }
     }
 
     private unselectDate(): void {
         this.selectedDate = null;
         this.render();
-        console.log('Date unselected');
+        // console.log('Date unselected');
     }
 
     private isSameDay(date1: Date, date2: Date): boolean {
@@ -461,7 +462,10 @@ class Calendar {
             return;
         }
 
+        console.log(`Selected date: ${this.selectedDate ? this.selectedDate : 'None'}`);
+
         const endDate = this.selectedDate || new Date();
+        console.log(endDate);
         const passedHours = this.calculatePassedHours(initialDate, endDate);
         const remainingHours = Math.max(0, totalHours - passedHours);
 
@@ -485,13 +489,18 @@ class Calendar {
         let totalHours = 0;
         const currentDate = new Date(initialDate);
 
-        // Include initial date and iterate until endDate (inclusive)
+        console.log(`${this.formatDateKey(currentDate)} -------------------- ${this.formatDateKey(endDate)}`);
+        // Include initial date and iterate until endDate (both inclusive)
+        // let adjustedEndDate = new Date(endDate);
+        // adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
         while (currentDate <= endDate) {
             const dateKey = this.formatDateKey(currentDate);
             const customData = this.customDays.get(dateKey);
             const dayOfWeek = currentDate.getDay();
             // Check if this specific day is custom included (overrides global exclusion)
             const isCustomIncluded = customData?.excluded === false;
+
+            console.log(`Day ${dateKey}, ${dayOfWeek}: isCustomIncluded=${isCustomIncluded}`);
 
             // Check if day is excluded (globally but not custom included, or custom excluded)
             const isGloballyExcluded = excludedWeekdays.has(dayOfWeek) && !isCustomIncluded;
@@ -723,7 +732,9 @@ class Inputs {
 
         const label = document.createElement('label');
         label.textContent = 'Fecha inicial:';
-        label.htmlFor = 'initial-date'; const dateInput = document.createElement('input');
+        label.htmlFor = 'initial-date';
+
+        const dateInput = document.createElement('input');
         dateInput.type = 'date';
         dateInput.id = 'initial-date';
         dateInput.className = 'date-input';
@@ -740,7 +751,9 @@ class Inputs {
         dateInput.addEventListener('change', (event) => {
             const target = event.target as HTMLInputElement;
             if (target.value) {
-                const selectedDate = new Date(target.value); if (selectedDate <= today) {
+                const selectedDate = new Date(target.value);
+
+                if (selectedDate <= today) {
                     this.initialDate = selectedDate;
                     this.saveToStorage(); // Save to localStorage
                     this.calendar.refresh(); // Refresh calendar
@@ -780,7 +793,9 @@ class Inputs {
             this.saveToStorage(); // Save to localStorage
             this.calendar.refresh(); // Refresh calendar
             console.log('Hours per day set:', this.hoursPerDay);
-        }); inputGroup.appendChild(label);
+        });
+
+        inputGroup.appendChild(label);
         inputGroup.appendChild(hoursInput);
         container.appendChild(inputGroup);
     }
@@ -808,7 +823,7 @@ class Inputs {
             this.totalHours = parseFloat(target.value) || 0;
             this.saveToStorage(); // Save to localStorage
             this.calendar.refresh(); // Refresh calendar
-            console.log('Total hours set:', this.totalHours);
+            // console.log('Total hours set:', this.totalHours);
         });
 
         inputGroup.appendChild(label);
@@ -856,7 +871,7 @@ class Inputs {
                 }
                 this.saveToStorage(); // Save to localStorage
                 this.calendar.refresh(); // Refresh calendar
-                console.log('Excluded weekdays:', Array.from(this.excludedWeekdays));
+                // console.log('Excluded weekdays:', Array.from(this.excludedWeekdays));
             });
 
             const checkboxLabel = document.createElement('label');
