@@ -275,7 +275,11 @@ class Calendar {
     }
 
     private formatDateKey(date: Date): string {
-        return date.toISOString().split('T')[0];
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const key = `${year}-${month}-${day}`;
+        return key;
     }
 
     private saveCustomDays(): void {
@@ -286,7 +290,7 @@ class Calendar {
 
     private addDaysToGrid(grid: HTMLDivElement): void {
         const firstDay = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth(), 1);
-        const lastDay = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() + 1, 0);
+        // const lastDay = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() + 1, 0);
         const startDate = new Date(firstDay);
 
         // Adjust for Monday as first day of week
@@ -302,8 +306,9 @@ class Calendar {
         const expectedEndDate = this.calculateExpectedEndDate();
 
         for (let i = 0; i < 42; i++) {
+
             const date = new Date(startDate);
-            date.setDate(startDate.getDate() + i);
+            date.setDate(date.getDate() + i);
 
             const dayElement = document.createElement('div');
             dayElement.className = 'day';
@@ -383,7 +388,10 @@ class Calendar {
             }
 
             // Add click event
-            dayElement.addEventListener('click', () => this.selectDate(date));
+            dayElement.addEventListener('click', () => {
+                const clickedDate = new Date(date.getTime());
+                this.selectDate(clickedDate);
+            });
 
             grid.appendChild(dayElement);
         }
@@ -429,10 +437,6 @@ class Calendar {
     public goToDate(date: Date): void {
         this.currentDate = new Date(date);
         this.render();
-    }
-
-    public getSelectedDate(): Date | null {
-        return this.selectedDate;
     }
 
     private createHoursDisplay(): void {
@@ -500,7 +504,7 @@ class Calendar {
             // Check if this specific day is custom included (overrides global exclusion)
             const isCustomIncluded = customData?.excluded === false;
 
-            console.log(`Day ${dateKey}, ${dayOfWeek}: isCustomIncluded=${isCustomIncluded}`);
+            // console.log(`Day ${dateKey}, ${dayOfWeek}: isCustomIncluded=${isCustomIncluded}`);
 
             // Check if day is excluded (globally but not custom included, or custom excluded)
             const isGloballyExcluded = excludedWeekdays.has(dayOfWeek) && !isCustomIncluded;
@@ -586,59 +590,6 @@ class Calendar {
         }
 
         return new Date(currentDate);
-    }
-
-    private createColorLegend(container: HTMLElement): void {
-        const legendGroup = document.createElement('div');
-        legendGroup.className = 'legend-group';
-
-        const title = document.createElement('h4');
-        title.textContent = 'Leyenda de colores';
-        title.style.marginBottom = '10px';
-        title.style.color = '#333';
-        legendGroup.appendChild(title);
-
-        const legendContainer = document.createElement('div');
-        legendContainer.className = 'legend-container';
-
-        const legendItems = [
-            { color: '#2196f3', label: 'Fecha inicial', class: 'legend-initial' },
-            { color: '#4caf50', label: 'Días trabajados', class: 'legend-passed' },
-            { color: '#2196f3', border: '2px solid gold', label: 'Fecha final esperada', class: 'legend-expected' },
-            { color: '#f44336', label: 'Días excluidos', class: 'legend-excluded' },
-            { color: '#ff9800', label: 'Horas personalizadas', class: 'legend-custom' },
-            { color: '#fdd835', textColor: '#000', label: 'Cero horas', class: 'legend-zero' },
-            { color: '#9e9e9e', label: 'Hoy', class: 'legend-today' }
-        ];
-
-        legendItems.forEach(item => {
-            const legendItem = document.createElement('div');
-            legendItem.className = 'legend-item';
-
-            const colorBox = document.createElement('div');
-            colorBox.className = 'legend-color-box';
-            colorBox.style.backgroundColor = item.color;
-            if (item.textColor) {
-                colorBox.style.color = item.textColor;
-            } else {
-                colorBox.style.color = 'white';
-            }
-            if (item.border) {
-                colorBox.style.border = item.border;
-                colorBox.style.boxShadow = '0 0 3px rgba(255, 215, 0, 0.5)';
-            }
-
-            const labelSpan = document.createElement('span');
-            labelSpan.textContent = item.label;
-            labelSpan.className = 'legend-label';
-
-            legendItem.appendChild(colorBox);
-            legendItem.appendChild(labelSpan);
-            legendContainer.appendChild(legendItem);
-        });
-
-        legendGroup.appendChild(legendContainer);
-        container.appendChild(legendGroup);
     }
 }
 
