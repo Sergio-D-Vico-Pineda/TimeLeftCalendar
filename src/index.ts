@@ -600,6 +600,7 @@ class Inputs {
         this.createTotalHoursInput(inputContainer);
         this.createWeekdayExclusions(inputContainer);
         this.createColorLegend(inputContainer);
+        this.createExportButton(inputContainer);
     }
 
     private loadFromStorage(): void {
@@ -856,6 +857,242 @@ class Inputs {
 
         legendGroup.appendChild(legendContainer);
         container.appendChild(legendGroup);
+    }
+
+    private createExportButton(container: HTMLElement): void {
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'button-group';
+
+        // Excel Export Button
+        const exportExcelButton = document.createElement('button');
+        exportExcelButton.type = 'button';
+        exportExcelButton.textContent = 'Exportar a Excel';
+        exportExcelButton.classList.add('export-button', 'export-buttons');
+        exportExcelButton.addEventListener('click', () => this.exportToExcel());
+
+        // JSON Export Button
+        const exportJsonButton = document.createElement('button');
+        exportJsonButton.type = 'button';
+        exportJsonButton.textContent = 'Exportar datos';
+        exportJsonButton.classList.add('json-export-button', 'export-buttons');
+        exportJsonButton.addEventListener('click', () => this.exportToJson());
+
+        // JSON Import Button
+        const importJsonButton = document.createElement('button');
+        importJsonButton.type = 'button';
+        importJsonButton.textContent = 'Importar datos';
+        importJsonButton.classList.add('json-import-button', 'export-buttons');
+        importJsonButton.addEventListener('click', () => this.triggerJsonImport());
+
+        // Hidden file input for JSON import
+        const fileInput = document.createElement('input');
+        fileInput.title = 'Importar datos';
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.style.display = 'none';
+        fileInput.addEventListener('change', (e) => this.handleJsonImport(e));
+
+        buttonGroup.appendChild(exportJsonButton);
+        buttonGroup.appendChild(importJsonButton);
+        buttonGroup.appendChild(exportExcelButton);
+        container.appendChild(buttonGroup);
+        container.appendChild(fileInput);
+    }
+
+    /**
+     * Exports the current calendar configuration to a JSON file
+     */
+    private exportToJson(): void {
+        const config = {
+            version: '1.0',
+            initialDate: this.initialDate ? this.initialDate.toISOString() : null,
+            hoursPerDay: this.hoursPerDay,
+            totalHours: this.totalHours,
+            excludedWeekdays: Array.from(this.excludedWeekdays),
+            customDays: Object.fromEntries(this.customDays),
+            exportDate: new Date().toISOString()
+        };
+
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(config, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute('href', dataStr);
+        downloadAnchorNode.setAttribute('download', `calendario_config_${new Date().toISOString().split('T')[0]}.json`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    /**
+     * Triggers the file picker for JSON import
+     */
+    private triggerJsonImport(): void {
+        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        if (fileInput) {
+            fileInput.value = ''; // Reset to allow selecting the same file again
+            fileInput.click();
+        }
+    }
+
+    /**
+     * Handles the file selection and import of JSON configuration
+     */
+    private handleJsonImport(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        if (!input.files || input.files.length === 0) return;
+
+        const file = input.files[0];
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            try {
+                const content = e.target?.result as string;
+                const config = JSON.parse(content);
+                this.importFromJson(config);
+            } catch (error) {
+                alert('Error al importar el archivo. Asegúrate de que es un archivo de configuración válido.');
+                console.error('Error importing JSON:', error);
+            }
+        };
+
+        reader.onerror = () => {
+            alert('Error al leer el archivo. Por favor, inténtalo de nuevo.');
+        };
+
+        reader.readAsText(file);
+    }
+
+    /**
+     * Imports configuration from a JSON object
+     */
+    private importFromJson(config: any): void {
+        try {
+            // Validate the config structure
+            if (typeof config !== 'object' || config === null) {
+                throw new Error('Formato de configuración inválido');
+            }
+
+            // Apply the configuration
+            if (config.initialDate) {
+                this.initialDate = new Date(config.initialDate);
+                const dateInput = document.getElementById('initial-date') as HTMLInputElement;
+                if (dateInput) {
+                    dateInput.value = this.initialDate.toISOString().split('T')[0];
+                }
+            }
+
+            if (typeof config.hoursPerDay === 'number') {
+                this.hoursPerDay = config.hoursPerDay;
+                const hoursInput = document.getElementById('hours-per-day') as HTMLInputElement;
+                if (hoursInput) {
+                    hoursInput.value = this.hoursPerDay.toString();
+                }
+            }
+
+            if (typeof config.totalHours === 'number') {
+                this.totalHours = config.totalHours;
+                const totalHoursInput = document.getElementById('total-hours') as HTMLInputElement;
+                if (totalHoursInput) {
+                    totalHoursInput.value = this.totalHours.toString();
+                }
+            }
+
+            if (Array.isArray(config.excludedWeekdays)) {
+                this.excludedWeekdays = new Set(config.excludedWeekdays);
+                // Update UI checkboxes
+                this.excludedWeekdays.forEach(day => {
+                    const checkbox = document.getElementById(`weekday-${day}`) as HTMLInputElement;
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+            }
+
+            if (config.customDays && typeof config.customDays === 'object') {
+                this.customDays = new Map(Object.entries(config.customDays));
+            }
+
+            // Save to storage and refresh the calendar
+            this.saveToStorage();
+            this.calendar.refresh();
+
+            // Show success message
+            alert('Configuración importada correctamente');
+
+        } catch (error) {
+            console.error('Error importing configuration:', error);
+            alert('Error al importar la configuración: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+        }
+    }
+
+    private exportToExcel(): void {
+        const initialDate = this.getInitialDate();
+        const hoursPerDay = this.getHoursPerDay();
+        const excludedWeekdays = this.getExcludedWeekdays();
+        const customDays = this.getCustomDays();
+
+        if (!initialDate) {
+            alert('Por favor, establece una fecha inicial antes de exportar');
+            return;
+        }
+
+        // Create CSV header
+        let csvContent = 'Fecha;Día de la semana;Horas;Estado\n';
+
+        // Get today's date
+        const today = new Date();
+
+        // Generate data for each day from initial date to today
+        const currentDate = new Date(initialDate);
+        while (currentDate <= today) {
+            const dateKey = this.formatDateKey(currentDate);
+            const dayOfWeek = currentDate.getDay();
+            const dayName = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][dayOfWeek];
+
+            // Get custom day data if it exists
+            const customData = customDays.get(dateKey);
+
+            // Determine status and hours
+            let status = 'Normal';
+            let hours = hoursPerDay;
+
+            if (customData?.excluded) {
+                status = 'Excluido';
+                hours = 0;
+            } else if (customData?.customHours !== undefined) {
+                status = 'Horas personalizadas';
+                hours = customData.customHours;
+            } else if (excludedWeekdays.has(dayOfWeek)) {
+                status = 'Día excluido';
+                hours = 0;
+            }
+
+            // Add row to CSV
+            const formattedDate = currentDate.toISOString().split('T')[0];
+            csvContent += `${formattedDate};${dayName};${hours};${status}\n`;
+
+            // Move to next day
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        // Create download link
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `calendario_horas_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    private formatDateKey(date: Date): string {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     }
 
     public getInitialDate(): Date | null {

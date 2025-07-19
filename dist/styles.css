@@ -202,6 +202,7 @@ a:hover {
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
+    -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
 }
 
@@ -240,6 +241,7 @@ a:hover {
     position: sticky;
     top: 0;
     z-index: 3;
+    -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
 }
 
@@ -472,6 +474,77 @@ a:hover {
     outline: none;
     border-color: var(--primary-color, #667eea);
     box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+/* Button group styles */
+.button-group {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.export-buttons {
+    display: block;
+    flex-grow: 1;
+    max-width: 100%;
+    padding: 12px 20px;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.export-buttons:hover {
+    background-color: var(--primary-hover, #45a049);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Export/Import button styles */
+.export-button {
+    background-color: var(--primary-color, #4caf50);
+}
+
+.export-button:hover {
+    background-color: var(--primary-hover, #45a049);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Style for JSON export button */
+.json-export-button {
+    background-color: #2196F3;
+}
+
+.json-export-button:hover {
+    background-color: #1976D2;
+}
+
+/* Style for import button */
+.json-import-button {
+    background-color: #FF9800;
+}
+
+.json-import-button:hover {
+    background-color: #F57C00;
+}
+
+.json-export-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.json-export-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 .weekdays-container {
