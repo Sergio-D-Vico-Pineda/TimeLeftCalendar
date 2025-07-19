@@ -18,7 +18,6 @@ class Calendar {
         this.calendarElement.className = 'calendar';
         container.appendChild(this.calendarElement);
 
-        // Create customization panel
         this.customizationPanel = document.createElement('div');
         this.customizationPanel.className = 'day-customization-panel';
         container.appendChild(this.customizationPanel);
@@ -28,7 +27,7 @@ class Calendar {
 
     public setInputs(inputs: Inputs): void {
         this.inputs = inputs;
-        // Load custom days from inputs
+
         this.customDays = inputs.getCustomDays();
         this.render();
     }
@@ -40,10 +39,8 @@ class Calendar {
     private render(): void {
         this.calendarElement.innerHTML = '';
 
-        // Create hours display
         this.createHoursDisplay();
 
-        // Create header
         const header = document.createElement('div');
         header.className = 'calendar-header';
 
@@ -64,7 +61,6 @@ class Calendar {
         header.appendChild(title);
         header.appendChild(nextButton);
 
-        // Create calendar grid
         const grid = document.createElement('div');
         grid.className = 'calendar-grid';
         const dayHeaders = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -75,10 +71,8 @@ class Calendar {
             grid.appendChild(dayHeader);
         });
 
-        // Add days
         this.addDaysToGrid(grid);
 
-        // Create info section
         const info = document.createElement('div');
         info.className = 'calendar-info';
 
@@ -102,7 +96,6 @@ class Calendar {
         this.calendarElement.appendChild(grid);
         this.calendarElement.appendChild(info);
 
-        // Update customization panel
         this.updateCustomizationPanel();
     }
 
@@ -116,56 +109,88 @@ class Calendar {
         const dateKey = this.formatDateKey(this.selectedDate);
         const customData = this.customDays.get(dateKey) || {};
 
-        // Check if this day is globally excluded by weekday
         const dayOfWeek = this.selectedDate.getDay();
         const excludedWeekdays = this.inputs?.getExcludedWeekdays() || new Set();
         const isGloballyExcluded = excludedWeekdays.has(dayOfWeek);
 
-        this.customizationPanel.innerHTML = `
-            <h4>Personalizar ${this.selectedDate.toLocaleDateString('es-ES', {
+        this.customizationPanel.innerHTML = '';
+
+        const header = document.createElement('h4');
+        header.textContent = `Personalizar ${this.selectedDate.toLocaleDateString('es-ES', {
             day: 'numeric',
             month: 'long',
             year: 'numeric'
-        })}</h4>
-            
-            <div class="customization-row">
-                <label>
-                    <input type="checkbox" id="exclude-day" ${customData.excluded ? 'checked' : ''}>
-                    Excluir este día específico
-                </label>
-            </div>
-            
-            <div class="customization-row">
-                <label>
-                    <input type="checkbox" id="include-day" 
-                        ${customData.excluded === false ? 'checked' : ''} 
-                        ${customData.excluded === true || !isGloballyExcluded ? 'disabled' : ''}>
-                    Incluir este día (anular exclusión global)
-                </label>
-            </div>
-            
-            <div class="customization-row">
-                <label for="custom-hours">Horas personalizadas:</label>
-                <input 
-                    type="number" 
-                    id="custom-hours" 
-                    min="0" 
-                    max="24" 
-                    step="0.25"
-                    value="${customData.customHours !== undefined ? customData.customHours : (this.inputs?.getHoursPerDay() || 8)}"
-                    ${customData.excluded ? 'disabled' : ''}
-                    placeholder="${this.inputs?.getHoursPerDay() || 8}"
-                >
-            </div>
-            
-            <div class="customization-row">
-                <button class="reset-button" id="reset-day" ${!customData.excluded && customData.customHours === undefined && customData.excluded !== false ? 'disabled' : ''}>
-                    Restablecer a valores por defecto
-                </button>
-            </div>
-        `;
+        })}`;
+        this.customizationPanel.appendChild(header);
 
-        // Add event listeners
+        const excludeRow = document.createElement('div');
+        excludeRow.className = 'customization-row';
+        const excludeLabel = document.createElement('label');
+        const excludeCheckboxHtml = document.createElement('input');
+        excludeCheckboxHtml.type = 'checkbox';
+        excludeCheckboxHtml.id = 'exclude-day';
+        if (customData.excluded) {
+            excludeCheckboxHtml.checked = true;
+        }
+        excludeLabel.appendChild(excludeCheckboxHtml);
+        excludeLabel.appendChild(document.createTextNode(' Excluir este día específico'));
+        excludeRow.appendChild(excludeLabel);
+        this.customizationPanel.appendChild(excludeRow);
+
+        const includeRow = document.createElement('div');
+        includeRow.className = 'customization-row';
+        const includeLabel = document.createElement('label');
+        includeLabel.htmlFor = 'include-day';
+        const includeCheckboxHtml = document.createElement('input');
+        includeCheckboxHtml.type = 'checkbox';
+        includeCheckboxHtml.id = 'include-day';
+        if (customData.excluded === false) {
+            includeCheckboxHtml.checked = true;
+        }
+        if (customData.excluded === true || !isGloballyExcluded) {
+            includeCheckboxHtml.disabled = true;
+        }
+        includeLabel.appendChild(includeCheckboxHtml);
+        includeLabel.appendChild(document.createTextNode('Incluir este día (anular exclusión global)'));
+        includeRow.appendChild(includeLabel);
+        this.customizationPanel.appendChild(includeRow);
+
+        const hoursRow = document.createElement('div');
+        hoursRow.className = 'customization-row';
+        const hoursLabel = document.createElement('label');
+        hoursLabel.htmlFor = 'custom-hours';
+        hoursLabel.textContent = 'Horas personalizadas:';
+        const hoursInput = document.createElement('input');
+        hoursInput.type = 'number';
+        hoursInput.id = 'custom-hours';
+        hoursInput.min = '0';
+        hoursInput.max = '24';
+        hoursInput.step = '0.25';
+        hoursInput.placeholder = (this.inputs?.getHoursPerDay() || 8).toString();
+        if (customData.excluded) {
+            hoursInput.disabled = true;
+        }
+        if (customData.customHours !== undefined) {
+            hoursInput.value = customData.customHours.toString();
+        } else {
+            hoursInput.value = (this.inputs?.getHoursPerDay() || 8).toString();
+        }
+        hoursRow.appendChild(hoursLabel);
+        hoursRow.appendChild(hoursInput);
+        this.customizationPanel.appendChild(hoursRow);
+
+        const resetRow = document.createElement('div');
+        resetRow.className = 'customization-row';
+        const resetButtonHtml = document.createElement('button');
+        resetButtonHtml.className = 'reset-button';
+        resetButtonHtml.id = 'reset-day';
+        resetButtonHtml.textContent = 'Restablecer a valores por defecto';
+        if (!customData.excluded && customData.customHours === undefined && customData.excluded !== false) {
+            resetButtonHtml.disabled = true;
+        }
+        resetRow.appendChild(resetButtonHtml);
+        this.customizationPanel.appendChild(resetRow);
+
         const excludeCheckbox = this.customizationPanel.querySelector('#exclude-day') as HTMLInputElement;
         const includeCheckbox = this.customizationPanel.querySelector('#include-day') as HTMLInputElement;
         const customHoursInput = this.customizationPanel.querySelector('#custom-hours') as HTMLInputElement;
@@ -180,7 +205,6 @@ class Calendar {
                 includeCheckbox.disabled = true;
             } else {
                 customHoursInput.value = (this.inputs?.getHoursPerDay() || 8).toString();
-                // Only enable include checkbox if day is globally excluded
                 const dayOfWeek = this.selectedDate!.getDay();
                 const excludedWeekdays = this.inputs?.getExcludedWeekdays() || new Set();
                 includeCheckbox.disabled = !excludedWeekdays.has(dayOfWeek);
@@ -190,23 +214,19 @@ class Calendar {
 
         includeCheckbox.addEventListener('change', () => {
             if (includeCheckbox.checked) {
-                // Include this day (override global exclusion)
                 this.updateCustomDay(dateKey, { excluded: false });
                 customHoursInput.disabled = false;
                 customHoursInput.value = (this.inputs?.getHoursPerDay() || 8).toString();
             } else {
-                // Remove custom inclusion (revert to global exclusion if applicable)
                 const date = new Date(dateKey + 'T00:00:00');
                 const dayOfWeek = date.getDay();
                 const excludedWeekdays = this.inputs?.getExcludedWeekdays() || new Set();
 
                 if (excludedWeekdays.has(dayOfWeek)) {
-                    // Day should be excluded again by global rule
                     this.customDays.delete(dateKey);
                     customHoursInput.disabled = true;
                     customHoursInput.value = '';
                 } else {
-                    // Day wasn't globally excluded, just remove custom inclusion
                     const existing = this.customDays.get(dateKey) || {};
                     delete existing.excluded;
                     if (Object.keys(existing).length === 0) {
@@ -241,19 +261,17 @@ class Calendar {
         if (updates.excluded !== undefined) {
             if (updates.excluded === true) {
                 existing.excluded = true;
-                delete existing.customHours; // Remove custom hours if excluding
+                delete existing.customHours;
             } else if (updates.excluded === false) {
-                // Custom inclusion (override global exclusion)
                 existing.excluded = false;
             } else {
-                // Remove any exclusion setting
                 delete existing.excluded;
             }
         }
 
         if (updates.customHours !== undefined && !existing.excluded) {
             if (updates.customHours === (this.inputs?.getHoursPerDay() || 8)) {
-                delete existing.customHours; // Remove if same as default
+                delete existing.customHours;
             } else {
                 existing.customHours = updates.customHours;
             }
@@ -290,19 +308,17 @@ class Calendar {
 
     private addDaysToGrid(grid: HTMLDivElement): void {
         const firstDay = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth(), 1);
-        // const lastDay = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() + 1, 0);
+
         const startDate = new Date(firstDay);
 
-        // Adjust for Monday as first day of week
         let dayOffset = firstDay.getDay() - 1;
-        if (dayOffset < 0) dayOffset = 6; // Handle Sunday (0) -> make it 6
+        if (dayOffset < 0) dayOffset = 6;
         startDate.setDate(startDate.getDate() - dayOffset);
 
         const today = new Date();
         const initialDate = this.inputs?.getInitialDate();
         const excludedWeekdays = this.inputs?.getExcludedWeekdays() || new Set();
 
-        // Calculate expected end date once outside the loop
         const expectedEndDate = this.calculateExpectedEndDate();
 
         for (let i = 0; i < 42; i++) {
@@ -314,32 +330,24 @@ class Calendar {
             dayElement.className = 'day';
             dayElement.textContent = date.getDate().toString();
 
-            // Add classes for styling
             if (date.getMonth() !== this.currentDate.getMonth()) {
                 dayElement.classList.add('other-month');
             }
 
-            // Get custom day data
             const dateKey = this.formatDateKey(date);
             const customData = this.customDays.get(dateKey);
             const dayOfWeek = date.getDay();
-            // Priority-based color logic
+
             let appliedClass = '';
 
-            // Check if this specific day is custom included (overrides global exclusion)
             const isCustomIncluded = customData?.excluded === false;
-
-            // Check if day is excluded by weekday rule but not custom included
             const isGloballyExcluded = excludedWeekdays.has(dayOfWeek) && !isCustomIncluded;
-
-            // Check if day is custom excluded
             const isCustomExcluded = customData?.excluded === true;
 
-            // 1. Check if it's a passed working day (base green or light green)
             if (initialDate && date >= initialDate && date <= today &&
                 !isGloballyExcluded && !isCustomExcluded) {
 
-                // Determine if it's before or after expected end date
+
                 if (expectedEndDate && date > expectedEndDate) {
                     appliedClass = 'passed-day-after-expected';
                 } else {
@@ -347,12 +355,10 @@ class Calendar {
                 }
             }
 
-            // 2. Check if it's excluded (globally or custom) - overrides passed
             if (isGloballyExcluded || isCustomExcluded) {
                 appliedClass = 'excluded-day';
             }
 
-            // 3. Check if it has custom hours - overrides excluded and passed
             if (customData?.customHours !== undefined && !isCustomExcluded && !isGloballyExcluded) {
                 if (customData.customHours === 0) {
                     appliedClass = 'zero-hours';
@@ -360,34 +366,28 @@ class Calendar {
                     appliedClass = 'custom-hours';
                 }
 
-                // Add tooltip for custom hours
                 dayElement.title = `${customData.customHours}h`;
-            }            // 4. Check if it's the expected end date
+            }
             if (expectedEndDate && this.isSameDay(date, expectedEndDate)) {
                 appliedClass = 'expected-end';
             }
 
-            // 5. Check if it's the initial date - overrides most others
             if (initialDate && this.isSameDay(date, initialDate)) {
                 appliedClass = 'initial-date';
             }
 
-            // 6. Check if it's today - overrides all others
             if (this.isSameDay(date, today)) {
                 appliedClass = 'today';
             }
 
-            // Apply the class
             if (appliedClass) {
                 dayElement.classList.add(appliedClass);
             }
 
-            // 6. Check if it's selected (this should be last to get darker color)
             if (this.selectedDate && this.isSameDay(date, this.selectedDate)) {
                 dayElement.classList.add('selected');
             }
 
-            // Add click event
             dayElement.addEventListener('click', () => {
                 const clickedDate = new Date(date.getTime());
                 this.selectDate(clickedDate);
@@ -400,7 +400,7 @@ class Calendar {
     private selectDate(date: Date): void {
         if (date.getMonth() === this.currentDate.getMonth()) {
             const datea = new Date(date);
-            datea.setHours(11, 59, 59, 59); // Normalize time to 11:59:59:59
+            datea.setHours(11, 59, 59, 59);
             this.selectedDate = datea;
             this.render();
         }
@@ -409,7 +409,6 @@ class Calendar {
     private unselectDate(): void {
         this.selectedDate = null;
         this.render();
-        // console.log('Date unselected');
     }
 
     private isSameDay(date1: Date, date2: Date): boolean {
@@ -424,13 +423,13 @@ class Calendar {
 
     private previousMonth(): void {
         this.currentDate.setMonth(this.currentDate.getMonth() - 1);
-        this.selectedDate = null; // Clear selection when changing months
+        this.selectedDate = null;
         this.render();
     }
 
     private nextMonth(): void {
         this.currentDate.setMonth(this.currentDate.getMonth() + 1);
-        this.selectedDate = null; // Clear selection when changing months
+        this.selectedDate = null;
         this.render();
     }
 
@@ -466,14 +465,10 @@ class Calendar {
             return;
         }
 
-        console.log(`Selected date: ${this.selectedDate ? this.selectedDate : 'None'}`);
-
         const endDate = this.selectedDate || new Date();
-        console.log(endDate);
         const passedHours = this.calculatePassedHours(initialDate, endDate);
         const remainingHours = Math.max(0, totalHours - passedHours);
 
-        // Check if hours are complete
         if (passedHours >= totalHours) {
             hoursDisplay.textContent = `¡Horas completadas! ${passedHours} / ${totalHours}`;
             hoursDisplay.className = 'hours-display complete';
@@ -493,26 +488,17 @@ class Calendar {
         let totalHours = 0;
         const currentDate = new Date(initialDate);
 
-        console.log(`${this.formatDateKey(currentDate)} -------------------- ${this.formatDateKey(endDate)}`);
-        // Include initial date and iterate until endDate (both inclusive)
-        // let adjustedEndDate = new Date(endDate);
-        // adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
         while (currentDate <= endDate) {
             const dateKey = this.formatDateKey(currentDate);
             const customData = this.customDays.get(dateKey);
             const dayOfWeek = currentDate.getDay();
-            // Check if this specific day is custom included (overrides global exclusion)
             const isCustomIncluded = customData?.excluded === false;
 
-            // console.log(`Day ${dateKey}, ${dayOfWeek}: isCustomIncluded=${isCustomIncluded}`);
-
-            // Check if day is excluded (globally but not custom included, or custom excluded)
             const isGloballyExcluded = excludedWeekdays.has(dayOfWeek) && !isCustomIncluded;
             const isCustomExcluded = customData?.excluded === true;
             const isExcluded = isGloballyExcluded || isCustomExcluded;
 
             if (!isExcluded) {
-                // Use custom hours if available, otherwise use default
                 const hoursForDay = customData?.customHours !== undefined
                     ? customData.customHours
                     : defaultHoursPerDay;
@@ -540,22 +526,18 @@ class Calendar {
         let accumulatedHours = 0;
         const currentDate = new Date(initialDate);
 
-        // Find the date when we reach the total hours
         while (accumulatedHours < totalHours) {
             const dateKey = this.formatDateKey(currentDate);
             const customData = this.customDays.get(dateKey);
             const dayOfWeek = currentDate.getDay();
 
-            // Check if this specific day is custom included (overrides global exclusion)
             const isCustomIncluded = customData?.excluded === false;
 
-            // Check if day is excluded (globally but not custom included, or custom excluded)
             const isGloballyExcluded = excludedWeekdays.has(dayOfWeek) && !isCustomIncluded;
             const isCustomExcluded = customData?.excluded === true;
             const isExcluded = isGloballyExcluded || isCustomExcluded;
 
             if (!isExcluded) {
-                // Use custom hours if available, otherwise use default
                 const hoursForDay = customData?.customHours !== undefined
                     ? customData.customHours
                     : defaultHoursPerDay;
@@ -563,7 +545,6 @@ class Calendar {
                 accumulatedHours += hoursForDay;
             }
 
-            // If we've reached the total, this is our end date
             if (accumulatedHours >= totalHours) {
                 break;
             }
@@ -571,7 +552,6 @@ class Calendar {
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        // If the calculated end date is on an excluded day, move to next working day
         while (true) {
             const dateKey = this.formatDateKey(currentDate);
             const customData = this.customDays.get(dateKey);
@@ -583,9 +563,8 @@ class Calendar {
             const isExcluded = isGloballyExcluded || isCustomExcluded;
 
             if (!isExcluded) {
-                break; // Found a working day
+                break;
             }
-
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
@@ -605,29 +584,21 @@ class Inputs {
     constructor(container: HTMLElement, calendar: Calendar) {
         this.calendar = calendar;
 
-        // Load saved values from localStorage
         this.loadFromStorage();
 
         const inputContainer = document.createElement('div');
         inputContainer.className = 'inputs-container';
         container.appendChild(inputContainer);
 
-        // Title for the inputs section
         const title = document.createElement('h3');
         title.textContent = 'Configuración';
-        title.style.marginBottom = '15px';
-        title.style.color = '#333';
+        title.classList.add('subtitle');
         inputContainer.appendChild(title);
 
-        // Create input for initial date
-        this.createInitialDateInput(inputContainer);        // Create input for hours per day
+        this.createInitialDateInput(inputContainer);
         this.createHoursPerDayInput(inputContainer);
-
-        // Create input for total hours
-        this.createTotalHoursInput(inputContainer);        // Create checkboxes for excluded weekdays
+        this.createTotalHoursInput(inputContainer);
         this.createWeekdayExclusions(inputContainer);
-
-        // Create color legend
         this.createColorLegend(inputContainer);
     }
 
@@ -653,7 +624,6 @@ class Inputs {
                 }
 
                 if (config.customDays) {
-                    // Convert array back to Map
                     this.customDays = new Map(Object.entries(config.customDays));
                 }
             }
@@ -690,11 +660,9 @@ class Inputs {
         dateInput.id = 'initial-date';
         dateInput.className = 'date-input';
 
-        // Set max date to today to prevent future dates
         const today = new Date();
         dateInput.max = today.toISOString().split('T')[0];
 
-        // Restore saved value
         if (this.initialDate) {
             dateInput.value = this.initialDate.toISOString().split('T')[0];
         }
@@ -706,17 +674,16 @@ class Inputs {
 
                 if (selectedDate <= today) {
                     this.initialDate = selectedDate;
-                    this.saveToStorage(); // Save to localStorage
-                    this.calendar.refresh(); // Refresh calendar
-                    console.log('Initial date set:', this.initialDate.toDateString());
+                    this.saveToStorage();
+                    this.calendar.refresh();
                 } else {
                     alert('No puedes seleccionar una fecha futura');
                     target.value = '';
                 }
             } else {
                 this.initialDate = null;
-                this.saveToStorage(); // Save to localStorage
-                this.calendar.refresh(); // Refresh calendar
+                this.saveToStorage();
+                this.calendar.refresh();
             }
         });
 
@@ -731,19 +698,20 @@ class Inputs {
 
         const label = document.createElement('label');
         label.textContent = 'Horas por día:';
-        label.htmlFor = 'hours-per-day'; const hoursInput = document.createElement('input');
+        label.htmlFor = 'hours-per-day';
+
+        const hoursInput = document.createElement('input');
         hoursInput.type = 'number';
         hoursInput.id = 'hours-per-day';
         hoursInput.min = '1';
         hoursInput.max = '24';
-        hoursInput.value = this.hoursPerDay.toString(); // Use saved value
+        hoursInput.value = this.hoursPerDay.toString();
 
         hoursInput.addEventListener('change', (event) => {
             const target = event.target as HTMLInputElement;
             this.hoursPerDay = parseInt(target.value) || 8;
-            this.saveToStorage(); // Save to localStorage
-            this.calendar.refresh(); // Refresh calendar
-            console.log('Hours per day set:', this.hoursPerDay);
+            this.saveToStorage();
+            this.calendar.refresh();
         });
 
         inputGroup.appendChild(label);
@@ -757,14 +725,15 @@ class Inputs {
 
         const label = document.createElement('label');
         label.textContent = 'Total de horas a contar:';
-        label.htmlFor = 'total-hours'; const totalHoursInput = document.createElement('input');
+        label.htmlFor = 'total-hours';
+
+        const totalHoursInput = document.createElement('input');
         totalHoursInput.type = 'number';
         totalHoursInput.id = 'total-hours';
         totalHoursInput.min = '0';
         totalHoursInput.step = '0.5';
         totalHoursInput.placeholder = 'Ej: 160';
 
-        // Restore saved value
         if (this.totalHours > 0) {
             totalHoursInput.value = this.totalHours.toString();
         }
@@ -772,9 +741,8 @@ class Inputs {
         totalHoursInput.addEventListener('change', (event) => {
             const target = event.target as HTMLInputElement;
             this.totalHours = parseFloat(target.value) || 0;
-            this.saveToStorage(); // Save to localStorage
-            this.calendar.refresh(); // Refresh calendar
-            // console.log('Total hours set:', this.totalHours);
+            this.saveToStorage();
+            this.calendar.refresh();
         });
 
         inputGroup.appendChild(label);
@@ -786,8 +754,8 @@ class Inputs {
         const inputGroup = document.createElement('div');
         inputGroup.className = 'input-group';
 
-        const label = document.createElement('label');
-        label.textContent = 'Días que no cuentan:';
+        const miniTitle = document.createElement('span');
+        miniTitle.textContent = 'Días que no cuentan:';
 
         const weekdaysContainer = document.createElement('div');
         weekdaysContainer.className = 'weekdays-container';
@@ -810,7 +778,6 @@ class Inputs {
             checkbox.id = `weekday-${weekday.value}`;
             checkbox.value = weekday.value.toString();
 
-            // Restore saved value
             checkbox.checked = this.excludedWeekdays.has(weekday.value);
 
             checkbox.addEventListener('change', (event) => {
@@ -820,9 +787,8 @@ class Inputs {
                 } else {
                     this.excludedWeekdays.delete(weekday.value);
                 }
-                this.saveToStorage(); // Save to localStorage
-                this.calendar.refresh(); // Refresh calendar
-                // console.log('Excluded weekdays:', Array.from(this.excludedWeekdays));
+                this.saveToStorage();
+                this.calendar.refresh();
             });
 
             const checkboxLabel = document.createElement('label');
@@ -834,7 +800,7 @@ class Inputs {
             weekdaysContainer.appendChild(checkboxContainer);
         });
 
-        inputGroup.appendChild(label);
+        inputGroup.appendChild(miniTitle);
         inputGroup.appendChild(weekdaysContainer);
         container.appendChild(inputGroup);
     }
@@ -845,8 +811,7 @@ class Inputs {
 
         const title = document.createElement('h4');
         title.textContent = 'Leyenda de colores';
-        title.style.marginBottom = '10px';
-        title.style.color = '#333';
+        title.classList.add('subtitle');
         legendGroup.appendChild(title);
 
         const legendContainer = document.createElement('div');
@@ -919,7 +884,6 @@ class Inputs {
     }
 }
 
-// Initialize the calendar
 const title = document.createElement('h1');
 title.textContent = 'Calculadora de días';
 title.classList.add('title');
