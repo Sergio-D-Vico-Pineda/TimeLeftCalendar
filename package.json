@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "dev": "node --watch src/index.ts"
+    "start": "node --watch src/index.ts",
+    "dev": "npx tsc --watch"
   },
   "devDependencies": {
     "@types/node": "^22.15.30",
