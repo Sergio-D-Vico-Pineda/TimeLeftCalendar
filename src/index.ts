@@ -191,10 +191,31 @@ class Calendar {
         resetRow.appendChild(resetButtonHtml);
         this.customizationPanel.appendChild(resetRow);
 
+        // Añadir botón para establecer como fecha inicial
+        const setAsInitialRow = document.createElement('div');
+        setAsInitialRow.className = 'customization-row';
+        const setAsInitialButton = document.createElement('button');
+        setAsInitialButton.className = 'set-initial-button';
+        setAsInitialButton.id = 'set-as-initial';
+
+        const initialDate = this.inputs?.getInitialDate();
+
+        if ((initialDate && this.isSameDay(this.selectedDate, initialDate)) ||
+            customData.excluded ||
+            isGloballyExcluded ||
+            this.selectedDate > new Date()) {
+            setAsInitialButton.disabled = true;
+        } else {
+            setAsInitialButton.textContent = 'Establecer como fecha inicial';
+            setAsInitialRow.appendChild(setAsInitialButton);
+            this.customizationPanel.appendChild(setAsInitialRow);
+        }
+
         const excludeCheckbox = this.customizationPanel.querySelector('#exclude-day') as HTMLInputElement;
         const includeCheckbox = this.customizationPanel.querySelector('#include-day') as HTMLInputElement;
         const customHoursInput = this.customizationPanel.querySelector('#custom-hours') as HTMLInputElement;
         const resetButton = this.customizationPanel.querySelector('#reset-day') as HTMLButtonElement;
+        const setInitialButton = this.customizationPanel.querySelector('#set-as-initial') as HTMLButtonElement;
 
         excludeCheckbox.addEventListener('change', () => {
             this.updateCustomDay(dateKey, { excluded: excludeCheckbox.checked });
@@ -253,6 +274,12 @@ class Calendar {
             this.customDays.delete(dateKey);
             this.saveCustomDays();
             this.render();
+        });
+
+        setInitialButton.addEventListener('click', () => {
+            if (this.selectedDate && this.inputs) {
+                this.inputs.setInitialDate(this.selectedDate);
+            }
         });
     }
 
@@ -460,7 +487,7 @@ class Calendar {
 
         const endDate = this.selectedDate || new Date();
         const passedHours = this.calculatePassedHours(initialDate, endDate);
-        
+
         if (totalHours === 0) {
             // When totalHours is 0, just show hours passed
             hoursDisplay.textContent = `Horas transcurridas: ${passedHours}`;
@@ -490,19 +517,19 @@ class Calendar {
 
         let totalHours = 0;
         const currentDate = new Date(initialDate);
-        
+
         // Calcular la diferencia máxima de días entre fechas para evitar bucles infinitos
         // y establecer un límite razonable de iteraciones
         const diffTime = Math.abs(endDate.getTime() - initialDate.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
+
         // Establecer un límite máximo de iteraciones (el doble de la diferencia de días como medida de seguridad)
         const maxIterations = Math.min(diffDays * 2, 3650); // Máximo ~10 años
         let iterations = 0;
 
         while (currentDate <= endDate && iterations < maxIterations) {
             iterations++;
-            
+
             const dateKey = this.formatDateKey(currentDate);
             const customData = this.customDays.get(dateKey);
             const dayOfWeek = currentDate.getDay();
@@ -521,7 +548,7 @@ class Calendar {
             }
 
             currentDate.setDate(currentDate.getDate() + 1);
-            
+
             // Si alcanzamos el límite de iteraciones, registramos una advertencia
             if (iterations >= maxIterations) {
                 console.warn('Se alcanzó el límite máximo de iteraciones al calcular las horas transcurridas');
@@ -545,7 +572,7 @@ class Calendar {
 
         let accumulatedHours = 0;
         const currentDate = new Date(initialDate);
-        
+
         // Establecer un límite máximo de iteraciones para evitar bucles infinitos
         // Calculamos un límite razonable basado en las horas totales y horas por día
         const maxIterations = Math.ceil(totalHours / (defaultHoursPerDay * 0.5)) * 2;
@@ -553,7 +580,7 @@ class Calendar {
 
         while (accumulatedHours < totalHours && iterations < maxIterations) {
             iterations++;
-            
+
             const dateKey = this.formatDateKey(currentDate);
             const customData = this.customDays.get(dateKey);
             const dayOfWeek = currentDate.getDay();
@@ -578,7 +605,7 @@ class Calendar {
 
             currentDate.setDate(currentDate.getDate() + 1);
         }
-        
+
         // Si alcanzamos el límite de iteraciones sin completar las horas,
         // devolvemos la fecha actual como mejor estimación
         if (iterations >= maxIterations) {
@@ -589,10 +616,10 @@ class Calendar {
         // Limitar también el segundo bucle para evitar problemas de memoria
         iterations = 0;
         const maxSecondLoopIterations = 366; // Máximo un año de iteraciones
-        
+
         while (iterations < maxSecondLoopIterations) {
             iterations++;
-            
+
             const dateKey = this.formatDateKey(currentDate);
             const customData = this.customDays.get(dateKey);
             const dayOfWeek = currentDate.getDay();
@@ -605,13 +632,13 @@ class Calendar {
             if (!isExcluded) {
                 break;
             }
-            
+
             // Si llegamos al límite de iteraciones, devolvemos la fecha actual
             if (iterations >= maxSecondLoopIterations) {
                 console.warn('Se alcanzó el límite máximo de iteraciones al buscar un día no excluido');
                 return new Date();
             }
-            
+
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
@@ -754,7 +781,7 @@ class Inputs {
         hoursInput.min = '1';
         hoursInput.max = '24';
         hoursInput.value = this.hoursPerDay.toString();
-        
+
         // Create error message span
         const errorSpan = document.createElement('span');
         errorSpan.className = 'input-error';
@@ -766,18 +793,18 @@ class Inputs {
 
         // Store the previous valid value
         let previousValidValue = this.hoursPerDay;
-        
+
         hoursInput.addEventListener('change', (event) => {
             const target = event.target as HTMLInputElement;
             const value = parseInt(target.value);
-            
+
             // Check if value is invalid
             if (!value || value <= 0 || value > 24) {
                 // Show error message
                 errorSpan.style.display = 'block';
                 // Keep the previous valid value instead of defaulting to 8
                 this.hoursPerDay = previousValidValue;
-                
+
                 // Hide error message after 5 seconds
                 setTimeout(() => {
                     errorSpan.style.display = 'none';
@@ -789,7 +816,7 @@ class Inputs {
                 // Update the previous valid value
                 previousValidValue = value;
             }
-            
+
             // Update the input value to reflect the validated value
             target.value = this.hoursPerDay.toString();
             this.saveToStorage();
@@ -807,7 +834,7 @@ class Inputs {
         inputGroup.className = 'input-group';
 
         const label = document.createElement('label');
-        label.textContent = 'Total de horas a contar (0 para solo contar horas transcurridas):';
+        label.textContent = 'Total de horas a contar (0 para contar horas):';
         label.htmlFor = 'total-hours';
 
         const totalHoursInput = document.createElement('input');
@@ -823,7 +850,12 @@ class Inputs {
 
         totalHoursInput.addEventListener('change', (event) => {
             const target = event.target as HTMLInputElement;
-            this.totalHours = parseFloat(target.value) || 0;
+            let value = parseFloat(target.value);
+            if (value < 0) {
+                value = 0;
+                target.value = "";
+            }
+            this.totalHours = value;
             this.saveToStorage();
             this.calendar.refresh();
         });
@@ -842,7 +874,7 @@ class Inputs {
 
         const weekdaysContainer = document.createElement('div');
         weekdaysContainer.className = 'weekdays-container';
-        
+
         // Error message for when all days are checked
         const errorMessage = document.createElement('span');
         errorMessage.className = 'weekday-error';
@@ -875,32 +907,32 @@ class Inputs {
 
             checkbox.addEventListener('change', (event) => {
                 const target = event.target as HTMLInputElement;
-                
+
                 // Check if this would result in all days being excluded
                 if (target.checked) {
                     // If we're adding a day and it would make all 7 days checked
                     if (this.excludedWeekdays.size === 6) {
                         // Prevent checking all days
                         target.checked = false;
-                        
+
                         // Show error message
                         errorMessage.style.display = 'block';
-                        
+
                         // Hide error message after 5 seconds
                         setTimeout(() => {
                             errorMessage.style.display = 'none';
                         }, 5000);
-                        
+
                         return;
                     }
-                    
+
                     this.excludedWeekdays.add(weekday.value);
                 } else {
                     this.excludedWeekdays.delete(weekday.value);
                     // Hide error message if it was showing
                     errorMessage.style.display = 'none';
                 }
-                
+
                 this.saveToStorage();
                 this.calendar.refresh();
             });
@@ -1231,7 +1263,24 @@ class Inputs {
 
     public setCustomDays(customDays: Map<string, { excluded?: boolean; customHours?: number }>): void {
         this.customDays = customDays;
-        this.saveToStorage();
+    }
+
+    // Método para establecer la fecha inicial desde el calendario
+    public setInitialDate(date: Date): void {
+        const today = new Date();
+        if (date <= today) {
+            this.initialDate = date;
+            this.saveToStorage();
+            this.calendar.refresh();
+
+            // Actualizar el input de fecha inicial si existe
+            const dateInput = document.getElementById('initial-date') as HTMLInputElement;
+            if (dateInput) {
+                dateInput.value = date.toISOString().split('T')[0];
+            }
+        } else {
+            alert('No puedes seleccionar una fecha futura');
+        }
     }
 }
 
