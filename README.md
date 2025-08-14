@@ -33,8 +33,9 @@ This calendar does not manage or store events—its main function is to display 
 
 ---
 
-## License
+## License 
 
 MIT License
+icons from [MonoIcons](https://github.com/mono-company/mono-icons)
 
 ---
