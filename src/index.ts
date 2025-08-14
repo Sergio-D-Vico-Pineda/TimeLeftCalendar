@@ -795,6 +795,16 @@ class Inputs {
 
         const weekdaysContainer = document.createElement('div');
         weekdaysContainer.className = 'weekdays-container';
+        
+        // Error message for when all days are checked
+        const errorMessage = document.createElement('span');
+        errorMessage.className = 'weekday-error';
+        errorMessage.textContent = 'No puedes excluir todos los días de la semana';
+        errorMessage.style.display = 'none';
+        errorMessage.style.color = 'red';
+        errorMessage.style.fontSize = '0.8em';
+        errorMessage.style.marginTop = '4px';
+        errorMessage.style.fontWeight = 'bold';
 
         const weekdays = [
             { name: 'Lunes', value: 1 },
@@ -818,11 +828,32 @@ class Inputs {
 
             checkbox.addEventListener('change', (event) => {
                 const target = event.target as HTMLInputElement;
+                
+                // Check if this would result in all days being excluded
                 if (target.checked) {
+                    // If we're adding a day and it would make all 7 days checked
+                    if (this.excludedWeekdays.size === 6) {
+                        // Prevent checking all days
+                        target.checked = false;
+                        
+                        // Show error message
+                        errorMessage.style.display = 'block';
+                        
+                        // Hide error message after 5 seconds
+                        setTimeout(() => {
+                            errorMessage.style.display = 'none';
+                        }, 5000);
+                        
+                        return;
+                    }
+                    
                     this.excludedWeekdays.add(weekday.value);
                 } else {
                     this.excludedWeekdays.delete(weekday.value);
+                    // Hide error message if it was showing
+                    errorMessage.style.display = 'none';
                 }
+                
                 this.saveToStorage();
                 this.calendar.refresh();
             });
@@ -838,6 +869,7 @@ class Inputs {
 
         inputGroup.appendChild(miniTitle);
         inputGroup.appendChild(weekdaysContainer);
+        inputGroup.appendChild(errorMessage);
         container.appendChild(inputGroup);
     }
 
