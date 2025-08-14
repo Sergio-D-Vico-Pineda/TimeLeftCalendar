@@ -458,22 +458,25 @@ class Calendar {
             return;
         }
 
-        if (totalHours <= 0) {
-            hoursDisplay.className = 'hours-display error';
-            hoursDisplay.textContent = 'Debes establecer el total de horas';
-            this.calendarElement.appendChild(hoursDisplay);
-            return;
-        }
-
         const endDate = this.selectedDate || new Date();
         const passedHours = this.calculatePassedHours(initialDate, endDate);
-        const remainingHours = Math.max(0, totalHours - passedHours);
+        
+        if (totalHours === 0) {
+            // When totalHours is 0, just show hours passed
+            hoursDisplay.textContent = `Horas transcurridas: ${passedHours}`;
+            hoursDisplay.className = 'hours-display';
+        } else if (totalHours > 0) {
+            const remainingHours = Math.max(0, totalHours - passedHours);
 
-        if (passedHours >= totalHours) {
-            hoursDisplay.textContent = `¡Horas completadas! ${passedHours} / ${totalHours}`;
-            hoursDisplay.className = 'hours-display complete';
+            if (passedHours >= totalHours) {
+                hoursDisplay.textContent = `¡Horas completadas! ${passedHours} / ${totalHours}`;
+                hoursDisplay.className = 'hours-display complete';
+            } else {
+                hoursDisplay.textContent = `Horas transcurridas: ${passedHours} / ${totalHours} (${remainingHours} restantes)`;
+            }
         } else {
-            hoursDisplay.textContent = `Horas transcurridas: ${passedHours} / ${totalHours} (${remainingHours} restantes)`;
+            hoursDisplay.className = 'hours-display error';
+            hoursDisplay.textContent = 'El total de horas debe ser 0 o un valor positivo';
         }
 
         this.calendarElement.appendChild(hoursDisplay);
@@ -804,7 +807,7 @@ class Inputs {
         inputGroup.className = 'input-group';
 
         const label = document.createElement('label');
-        label.textContent = 'Total de horas a contar:';
+        label.textContent = 'Total de horas a contar (0 para solo contar horas transcurridas):';
         label.htmlFor = 'total-hours';
 
         const totalHoursInput = document.createElement('input');
@@ -812,9 +815,9 @@ class Inputs {
         totalHoursInput.id = 'total-hours';
         totalHoursInput.min = '0';
         totalHoursInput.step = '0.5';
-        totalHoursInput.placeholder = 'Ej: 160';
+        totalHoursInput.placeholder = '160';
 
-        if (this.totalHours > 0) {
+        if (this.totalHours >= 0) {
             totalHoursInput.value = this.totalHours.toString();
         }
 
