@@ -707,16 +707,51 @@ class Inputs {
         hoursInput.min = '1';
         hoursInput.max = '24';
         hoursInput.value = this.hoursPerDay.toString();
+        
+        // Create error message span
+        const errorSpan = document.createElement('span');
+        errorSpan.className = 'input-error';
+        errorSpan.textContent = 'El valor debe ser positivo (entre 1 y 24)';
+        errorSpan.style.display = 'none';
+        errorSpan.style.color = 'red';
+        errorSpan.style.fontSize = '0.8em';
+        errorSpan.style.marginTop = '4px';
 
+        // Store the previous valid value
+        let previousValidValue = this.hoursPerDay;
+        
         hoursInput.addEventListener('change', (event) => {
             const target = event.target as HTMLInputElement;
-            this.hoursPerDay = parseInt(target.value) || 8;
+            const value = parseInt(target.value);
+            
+            // Check if value is invalid
+            if (!value || value <= 0 || value > 24) {
+                // Show error message
+                errorSpan.style.display = 'block';
+                // Keep the previous valid value instead of defaulting to 8
+                this.hoursPerDay = previousValidValue;
+                
+                // Hide error message after 5 seconds
+                setTimeout(() => {
+                    errorSpan.style.display = 'none';
+                }, 5000);
+            } else {
+                // Hide error message
+                errorSpan.style.display = 'none';
+                this.hoursPerDay = value;
+                // Update the previous valid value
+                previousValidValue = value;
+            }
+            
+            // Update the input value to reflect the validated value
+            target.value = this.hoursPerDay.toString();
             this.saveToStorage();
             this.calendar.refresh();
         });
 
         inputGroup.appendChild(label);
         inputGroup.appendChild(hoursInput);
+        inputGroup.appendChild(errorSpan);
         container.appendChild(inputGroup);
     }
 
