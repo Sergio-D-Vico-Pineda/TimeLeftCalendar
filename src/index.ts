@@ -487,8 +487,19 @@ class Calendar {
 
         let totalHours = 0;
         const currentDate = new Date(initialDate);
+        
+        // Calcular la diferencia máxima de días entre fechas para evitar bucles infinitos
+        // y establecer un límite razonable de iteraciones
+        const diffTime = Math.abs(endDate.getTime() - initialDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Establecer un límite máximo de iteraciones (el doble de la diferencia de días como medida de seguridad)
+        const maxIterations = Math.min(diffDays * 2, 3650); // Máximo ~10 años
+        let iterations = 0;
 
-        while (currentDate <= endDate) {
+        while (currentDate <= endDate && iterations < maxIterations) {
+            iterations++;
+            
             const dateKey = this.formatDateKey(currentDate);
             const customData = this.customDays.get(dateKey);
             const dayOfWeek = currentDate.getDay();
@@ -507,6 +518,12 @@ class Calendar {
             }
 
             currentDate.setDate(currentDate.getDate() + 1);
+            
+            // Si alcanzamos el límite de iteraciones, registramos una advertencia
+            if (iterations >= maxIterations) {
+                console.warn('Se alcanzó el límite máximo de iteraciones al calcular las horas transcurridas');
+                break;
+            }
         }
 
         return totalHours;
@@ -525,8 +542,15 @@ class Calendar {
 
         let accumulatedHours = 0;
         const currentDate = new Date(initialDate);
+        
+        // Establecer un límite máximo de iteraciones para evitar bucles infinitos
+        // Calculamos un límite razonable basado en las horas totales y horas por día
+        const maxIterations = Math.ceil(totalHours / (defaultHoursPerDay * 0.5)) * 2;
+        let iterations = 0;
 
-        while (accumulatedHours < totalHours) {
+        while (accumulatedHours < totalHours && iterations < maxIterations) {
+            iterations++;
+            
             const dateKey = this.formatDateKey(currentDate);
             const customData = this.customDays.get(dateKey);
             const dayOfWeek = currentDate.getDay();
@@ -551,8 +575,21 @@ class Calendar {
 
             currentDate.setDate(currentDate.getDate() + 1);
         }
+        
+        // Si alcanzamos el límite de iteraciones sin completar las horas,
+        // devolvemos la fecha actual como mejor estimación
+        if (iterations >= maxIterations) {
+            console.warn('Se alcanzó el límite máximo de iteraciones al calcular la fecha esperada');
+            return new Date();
+        }
 
-        while (true) {
+        // Limitar también el segundo bucle para evitar problemas de memoria
+        iterations = 0;
+        const maxSecondLoopIterations = 366; // Máximo un año de iteraciones
+        
+        while (iterations < maxSecondLoopIterations) {
+            iterations++;
+            
             const dateKey = this.formatDateKey(currentDate);
             const customData = this.customDays.get(dateKey);
             const dayOfWeek = currentDate.getDay();
@@ -565,6 +602,13 @@ class Calendar {
             if (!isExcluded) {
                 break;
             }
+            
+            // Si llegamos al límite de iteraciones, devolvemos la fecha actual
+            if (iterations >= maxSecondLoopIterations) {
+                console.warn('Se alcanzó el límite máximo de iteraciones al buscar un día no excluido');
+                return new Date();
+            }
+            
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
