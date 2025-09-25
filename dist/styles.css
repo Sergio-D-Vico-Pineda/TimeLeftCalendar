@@ -477,16 +477,58 @@ a:hover {
 /* Button group styles */
 .button-group {
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 10px;
+    flex-direction: column;
+    gap: 12px;
     margin: 20px 0;
+    width: 100%;
 }
 
+.button-row {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    width: 100%;
+    justify-content: center;
+}
+
+.button-row.single-button {
+    justify-content: center;
+}
+
+.button-row.double-buttons {
+    justify-content: space-between;
+}
+
+.button-row .export-buttons {
+    flex: 1;
+    min-width: 0; /* Prevents flex items from overflowing */
+}
+
+.button-row.single-button .export-buttons {
+    max-width: 300px; /* Limit width for single buttons */
+}
+
+/* Clear all button styles */
+.clear-all-button {
+    background-color: #f44336;
+    color: white;
+}
+
+.clear-all-button:hover {
+    background-color: #d32f2f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.clear-all-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Update export buttons to take full width in their rows */
 .export-buttons {
     display: block;
-    flex-grow: 1;
-    max-width: 100%;
+    width: 100%;
     padding: 12px 20px;
     color: white;
     border: none;
@@ -496,10 +538,10 @@ a:hover {
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: center;
+    box-sizing: border-box;
 }
 
 .export-buttons:hover {
-    background-color: var(--primary-hover, #45a049);
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
@@ -511,8 +553,6 @@ a:hover {
 
 .export-button:hover {
     background-color: var(--primary-hover, #45a049);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Style for JSON export button */
