@@ -276,11 +276,13 @@ class Calendar {
             this.render();
         });
 
-        setInitialButton.addEventListener('click', () => {
-            if (this.selectedDate && this.inputs) {
-                this.inputs.setInitialDate(this.selectedDate);
-            }
-        });
+        if (setAsInitialButton) {
+            setAsInitialButton.addEventListener('click', () => {
+                if (this.selectedDate && this.inputs) {
+                    this.inputs.setInitialDate(this.selectedDate);
+                }
+            });
+        }
     }
 
     private updateCustomDay(dateKey: string, updates: { excluded?: boolean; customHours?: number }): void {
@@ -1480,6 +1482,8 @@ class Inputs {
 
     public setCustomDays(customDays: Map<string, { excluded?: boolean; customHours?: number }>): void {
         this.customDays = customDays;
+        this.saveToStorage();
+        this.calendar.refresh();
     }
 
     /**
@@ -1487,7 +1491,7 @@ class Inputs {
      */
     private updateWeekdayCheckboxes(): void {
         const checkboxes = document.querySelectorAll<HTMLInputElement>('.weekday-checkbox input[type="checkbox"]');
-        
+
         checkboxes.forEach(checkbox => {
             const dayValue = parseInt(checkbox.value, 10);
             checkbox.checked = this.excludedWeekdays.has(dayValue);
