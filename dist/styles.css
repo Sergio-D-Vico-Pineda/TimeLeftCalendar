@@ -265,7 +265,7 @@ a:hover {
 .day:hover {
     background: var(--primary-hover, #667eea);
     color: white;
-    transform: translateY(-2px);
+    transform: translateY(-1.5px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     z-index: 2;
 }
@@ -317,7 +317,6 @@ a:hover {
     color: white;
     font-weight: bold;
     border: 2px solid gold;
-    box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
 }
 
 .day.other-month {
