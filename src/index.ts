@@ -722,6 +722,269 @@ class Inputs {
         }
     }
 
+    private exportToJson(): void {
+        const config = {
+            version: '1.0',
+            initialDate: this.initialDate ? this.initialDate.toISOString() : null,
+            hoursPerDay: this.hoursPerDay,
+            totalHours: this.totalHours,
+            excludedWeekdays: Array.from(this.excludedWeekdays),
+            customDays: Object.fromEntries(this.customDays),
+            exportDate: new Date().toISOString()
+        };
+
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(config, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute('href', dataStr);
+        downloadAnchorNode.setAttribute('download', `calendario_config_${new Date().toISOString().split('T')[0]}.json`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+
+        // Clean up memory after download starts (use timeout to ensure download begins)
+        setTimeout(() => {
+            console.log('JSON export: Memory cleaned up successfully');
+        }, 100);
+    }
+
+    private exportToExcel(): void {
+        const initialDate = this.getInitialDate();
+        const hoursPerDay = this.getHoursPerDay();
+        const excludedWeekdays = this.getExcludedWeekdays();
+        const customDays = this.getCustomDays();
+
+        if (!initialDate) {
+            alert('Por favor, establece una fecha inicial antes de exportar');
+            return;
+        }
+
+        // Create CSV header
+        let csvContent = 'Fecha;Día de la semana;Horas;Estado\n';
+
+        // Get today's date
+        const today = new Date();
+
+        // Generate data for each day from initial date to today
+        const currentDate = new Date(initialDate);
+        while (currentDate <= today) {
+            const dateKey = this.calendar.formatDateKey(currentDate);
+            const dayOfWeek = currentDate.getDay();
+            const dayName = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][dayOfWeek];
+
+            // Get custom day data if it exists
+            const customData = customDays.get(dateKey);
+
+            // Determine status and hours
+            let status = 'Normal';
+            let hours = hoursPerDay;
+
+            if (customData?.excluded) {
+                status = 'Excluido';
+                hours = 0;
+            } else if (customData?.customHours !== undefined) {
+                status = 'Horas personalizadas';
+                hours = customData.customHours;
+            } else if (excludedWeekdays.has(dayOfWeek)) {
+                status = 'Día excluido';
+                hours = 0;
+            }
+
+            // Add row to CSV
+            const formattedDate = currentDate.toISOString().split('T')[0];
+            csvContent += `${formattedDate};${dayName};${hours};${status}\n`;
+
+            // Move to next day
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        // Create download link
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `calendario_horas_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Clean up memory after download starts (use timeout to ensure download begins)
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+            console.log('Excel export: Memory cleaned up successfully');
+        }, 100);
+    }
+
+    private triggerJsonImport(): void {
+        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        if (fileInput) {
+            fileInput.value = ''; // Reset to allow selecting the same file again
+            fileInput.click();
+        }
+    }
+
+    private handleJsonImport(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        if (!input.files || input.files.length === 0) return;
+
+        const file = input.files[0];
+        const maxSize = 2 * 1024 * 1024; // 2MB limit
+
+        // Check file type
+        if (!file.name.toLowerCase().endsWith('.json')) {
+            alert('Error: Solo se permiten archivos JSON (.json).');
+            console.error('JSON import: Invalid file type:', file.name);
+            return;
+        }
+
+        // Check file size
+        if (file.size > maxSize) {
+            alert('Error: El archivo es demasiado grande. El tamaño máximo permitido es 2MB.');
+            console.error('JSON import: File size exceeds limit:', file.size);
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+            try {
+                const content = e.target?.result as string;
+                const config = JSON.parse(content);
+                this.importFromJson(config);
+            } catch (error) {
+                alert('Error al importar el archivo. Asegúrate de que es un archivo de configuración válido.');
+                console.error('Error importing JSON:', error);
+            }
+        };
+
+        reader.onerror = () => {
+            alert('Error al leer el archivo. Por favor, inténtalo de nuevo.');
+            console.error('JSON import: File reading error');
+        };
+
+        reader.readAsText(file);
+        console.log('JSON import: File validation passed, size:', file.size, 'bytes');
+    }
+
+    private importFromJson(config: any): void {
+        console.log('JSON import: Starting validation process');
+
+        try {
+            // Comprehensive validation
+            const validationErrors = this.validateImportData(config);
+
+            if (validationErrors.length > 0) {
+                // Show specific error messages
+                const errorMessage = 'Errores de validación:\n' + validationErrors.map(error => `• ${error}`).join('\n');
+                alert(errorMessage);
+                console.error('JSON import validation failed:', validationErrors);
+                return;
+            }
+
+            console.log('JSON import: Validation passed, applying configuration');
+
+            // Apply the configuration only if all validation passes
+            this.applyValidatedConfiguration(config);
+
+            console.log('JSON import: Configuration applied successfully');
+
+        } catch (error) {
+            console.error('JSON import: Unexpected error:', error);
+            alert('Error inesperado al importar la configuración: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+        }
+    }
+
+    private validateImportData(config: any): string[] {
+        const errors: string[] = [];
+
+        // Check if config is an object
+        if (typeof config !== 'object' || config === null) {
+            errors.push('El archivo debe contener un objeto de configuración válido');
+            return errors; // Return early if not an object
+        }
+
+        // Validate initialDate
+        if (config.initialDate !== undefined) {
+            if (config.initialDate !== null) {
+                if (typeof config.initialDate !== 'string') {
+                    errors.push('initialDate debe ser una cadena de texto o null');
+                } else {
+                    const date = new Date(config.initialDate);
+                    if (isNaN(date.getTime())) {
+                        errors.push('initialDate contiene un formato de fecha inválido');
+                    }
+                }
+            }
+        }
+
+        // Validate hoursPerDay
+        if (config.hoursPerDay !== undefined) {
+            if (typeof config.hoursPerDay !== 'number') {
+                errors.push('hoursPerDay debe ser un número');
+            } else if (config.hoursPerDay < 1 || config.hoursPerDay > 24) {
+                errors.push('hoursPerDay debe estar entre 1 y 24 horas');
+            }
+        }
+
+        // Validate totalHours
+        if (config.totalHours !== undefined) {
+            if (typeof config.totalHours !== 'number') {
+                errors.push('totalHours debe ser un número');
+            } else if (config.totalHours < 0) {
+                errors.push('totalHours no puede ser negativo');
+            }
+        }
+
+        // Validate excludedWeekdays
+        if (config.excludedWeekdays !== undefined) {
+            if (!Array.isArray(config.excludedWeekdays)) {
+                errors.push('excludedWeekdays debe ser un array');
+            } else {
+                config.excludedWeekdays.forEach((day: any, index: number) => {
+                    if (typeof day !== 'number') {
+                        errors.push(`excludedWeekdays[${index}] debe ser un número`);
+                    } else if (day < 0 || day > 6) {
+                        errors.push(`excludedWeekdays[${index}] debe estar entre 0 y 6 (0=Domingo, 6=Sábado)`);
+                    }
+                });
+            }
+        }
+
+        // Validate customDays
+        if (config.customDays !== undefined) {
+            if (typeof config.customDays !== 'object' || config.customDays === null) {
+                errors.push('customDays debe ser un objeto');
+            } else {
+                for (const [dateKey, dayConfig] of Object.entries(config.customDays)) {
+                    if (typeof dayConfig !== 'object' || dayConfig === null) {
+                        errors.push(`customDays["${dateKey}"] debe ser un objeto`);
+                        continue;
+                    }
+
+                    const config = dayConfig as any;
+
+                    // Validate excluded property
+                    if (config.excluded !== undefined && typeof config.excluded !== 'boolean') {
+                        errors.push(`customDays["${dateKey}"].excluded debe ser true o false`);
+                    }
+
+                    // Validate customHours property
+                    if (config.customHours !== undefined) {
+                        if (typeof config.customHours !== 'number') {
+                            errors.push(`customDays["${dateKey}"].customHours debe ser un número`);
+                        } else if (config.customHours < 0 || config.customHours > 24) {
+                            errors.push(`customDays["${dateKey}"].customHours debe estar entre 0 y 24`);
+                        }
+                    }
+                }
+            }
+        }
+
+        return errors;
+    }
+
     private clearAllData(): void {
         const confirmMessage = '¿Estás seguro de que quieres borrar todos los datos?\n\n' +
             'Esta acción eliminará:\n' +
@@ -1107,214 +1370,6 @@ class Inputs {
     }
 
     /**
-     * Exports the current calendar configuration to a JSON file
-     */
-    private exportToJson(): void {
-        const config = {
-            version: '1.0',
-            initialDate: this.initialDate ? this.initialDate.toISOString() : null,
-            hoursPerDay: this.hoursPerDay,
-            totalHours: this.totalHours,
-            excludedWeekdays: Array.from(this.excludedWeekdays),
-            customDays: Object.fromEntries(this.customDays),
-            exportDate: new Date().toISOString()
-        };
-
-        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(config, null, 2));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute('href', dataStr);
-        downloadAnchorNode.setAttribute('download', `calendario_config_${new Date().toISOString().split('T')[0]}.json`);
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
-
-        // Clean up memory after download starts (use timeout to ensure download begins)
-        setTimeout(() => {
-            console.log('JSON export: Memory cleaned up successfully');
-        }, 100);
-    }
-
-    /**
-     * Triggers the file picker for JSON import
-     */
-    private triggerJsonImport(): void {
-        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-        if (fileInput) {
-            fileInput.value = ''; // Reset to allow selecting the same file again
-            fileInput.click();
-        }
-    }
-
-    /**
-     * Handles the file selection and import of JSON configuration
-     */
-    private handleJsonImport(event: Event): void {
-        const input = event.target as HTMLInputElement;
-        if (!input.files || input.files.length === 0) return;
-
-        const file = input.files[0];
-        const maxSize = 2 * 1024 * 1024; // 2MB limit
-
-        // Check file type
-        if (!file.name.toLowerCase().endsWith('.json')) {
-            alert('Error: Solo se permiten archivos JSON (.json).');
-            console.error('JSON import: Invalid file type:', file.name);
-            return;
-        }
-
-        // Check file size
-        if (file.size > maxSize) {
-            alert('Error: El archivo es demasiado grande. El tamaño máximo permitido es 2MB.');
-            console.error('JSON import: File size exceeds limit:', file.size);
-            return;
-        }
-
-        const reader = new FileReader();
-
-        reader.onload = (e) => {
-            try {
-                const content = e.target?.result as string;
-                const config = JSON.parse(content);
-                this.importFromJson(config);
-            } catch (error) {
-                alert('Error al importar el archivo. Asegúrate de que es un archivo de configuración válido.');
-                console.error('Error importing JSON:', error);
-            }
-        };
-
-        reader.onerror = () => {
-            alert('Error al leer el archivo. Por favor, inténtalo de nuevo.');
-            console.error('JSON import: File reading error');
-        };
-
-        reader.readAsText(file);
-        console.log('JSON import: File validation passed, size:', file.size, 'bytes');
-    }
-
-    /**
-     * Imports configuration from a JSON object with comprehensive validation
-     */
-    private importFromJson(config: any): void {
-        console.log('JSON import: Starting validation process');
-
-        try {
-            // Comprehensive validation
-            const validationErrors = this.validateImportData(config);
-
-            if (validationErrors.length > 0) {
-                // Show specific error messages
-                const errorMessage = 'Errores de validación:\n' + validationErrors.map(error => `• ${error}`).join('\n');
-                alert(errorMessage);
-                console.error('JSON import validation failed:', validationErrors);
-                return;
-            }
-
-            console.log('JSON import: Validation passed, applying configuration');
-
-            // Apply the configuration only if all validation passes
-            this.applyValidatedConfiguration(config);
-
-            console.log('JSON import: Configuration applied successfully');
-
-        } catch (error) {
-            console.error('JSON import: Unexpected error:', error);
-            alert('Error inesperado al importar la configuración: ' + (error instanceof Error ? error.message : 'Error desconocido'));
-        }
-    }
-
-    /**
-     * Validates imported JSON configuration data
-     */
-    private validateImportData(config: any): string[] {
-        const errors: string[] = [];
-
-        // Check if config is an object
-        if (typeof config !== 'object' || config === null) {
-            errors.push('El archivo debe contener un objeto de configuración válido');
-            return errors; // Return early if not an object
-        }
-
-        // Validate initialDate
-        if (config.initialDate !== undefined) {
-            if (config.initialDate !== null) {
-                if (typeof config.initialDate !== 'string') {
-                    errors.push('initialDate debe ser una cadena de texto o null');
-                } else {
-                    const date = new Date(config.initialDate);
-                    if (isNaN(date.getTime())) {
-                        errors.push('initialDate contiene un formato de fecha inválido');
-                    }
-                }
-            }
-        }
-
-        // Validate hoursPerDay
-        if (config.hoursPerDay !== undefined) {
-            if (typeof config.hoursPerDay !== 'number') {
-                errors.push('hoursPerDay debe ser un número');
-            } else if (config.hoursPerDay < 1 || config.hoursPerDay > 24) {
-                errors.push('hoursPerDay debe estar entre 1 y 24 horas');
-            }
-        }
-
-        // Validate totalHours
-        if (config.totalHours !== undefined) {
-            if (typeof config.totalHours !== 'number') {
-                errors.push('totalHours debe ser un número');
-            } else if (config.totalHours < 0) {
-                errors.push('totalHours no puede ser negativo');
-            }
-        }
-
-        // Validate excludedWeekdays
-        if (config.excludedWeekdays !== undefined) {
-            if (!Array.isArray(config.excludedWeekdays)) {
-                errors.push('excludedWeekdays debe ser un array');
-            } else {
-                config.excludedWeekdays.forEach((day: any, index: number) => {
-                    if (typeof day !== 'number') {
-                        errors.push(`excludedWeekdays[${index}] debe ser un número`);
-                    } else if (day < 0 || day > 6) {
-                        errors.push(`excludedWeekdays[${index}] debe estar entre 0 y 6 (0=Domingo, 6=Sábado)`);
-                    }
-                });
-            }
-        }
-
-        // Validate customDays
-        if (config.customDays !== undefined) {
-            if (typeof config.customDays !== 'object' || config.customDays === null) {
-                errors.push('customDays debe ser un objeto');
-            } else {
-                for (const [dateKey, dayConfig] of Object.entries(config.customDays)) {
-                    if (typeof dayConfig !== 'object' || dayConfig === null) {
-                        errors.push(`customDays["${dateKey}"] debe ser un objeto`);
-                        continue;
-                    }
-
-                    const config = dayConfig as any;
-
-                    // Validate excluded property
-                    if (config.excluded !== undefined && typeof config.excluded !== 'boolean') {
-                        errors.push(`customDays["${dateKey}"].excluded debe ser true o false`);
-                    }
-
-                    // Validate customHours property
-                    if (config.customHours !== undefined) {
-                        if (typeof config.customHours !== 'number') {
-                            errors.push(`customDays["${dateKey}"].customHours debe ser un número`);
-                        } else if (config.customHours < 0 || config.customHours > 24) {
-                            errors.push(`customDays["${dateKey}"].customHours debe estar entre 0 y 24`);
-                        }
-                    }
-                }
-            }
-        }
-
-        return errors;
-    }
-
-    /**
      * Updates the input fields in the UI to match the current state
      */
     private updateInputFields(): void {
@@ -1403,76 +1458,6 @@ class Inputs {
         }
     }
 
-    private exportToExcel(): void {
-        const initialDate = this.getInitialDate();
-        const hoursPerDay = this.getHoursPerDay();
-        const excludedWeekdays = this.getExcludedWeekdays();
-        const customDays = this.getCustomDays();
-
-        if (!initialDate) {
-            alert('Por favor, establece una fecha inicial antes de exportar');
-            return;
-        }
-
-        // Create CSV header
-        let csvContent = 'Fecha;Día de la semana;Horas;Estado\n';
-
-        // Get today's date
-        const today = new Date();
-
-        // Generate data for each day from initial date to today
-        const currentDate = new Date(initialDate);
-        while (currentDate <= today) {
-            const dateKey = this.calendar.formatDateKey(currentDate);
-            const dayOfWeek = currentDate.getDay();
-            const dayName = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][dayOfWeek];
-
-            // Get custom day data if it exists
-            const customData = customDays.get(dateKey);
-
-            // Determine status and hours
-            let status = 'Normal';
-            let hours = hoursPerDay;
-
-            if (customData?.excluded) {
-                status = 'Excluido';
-                hours = 0;
-            } else if (customData?.customHours !== undefined) {
-                status = 'Horas personalizadas';
-                hours = customData.customHours;
-            } else if (excludedWeekdays.has(dayOfWeek)) {
-                status = 'Día excluido';
-                hours = 0;
-            }
-
-            // Add row to CSV
-            const formattedDate = currentDate.toISOString().split('T')[0];
-            csvContent += `${formattedDate};${dayName};${hours};${status}\n`;
-
-            // Move to next day
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
-
-        // Create download link
-        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', `calendario_horas_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-
-        // Trigger download
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Clean up memory after download starts (use timeout to ensure download begins)
-        setTimeout(() => {
-            URL.revokeObjectURL(url);
-            console.log('Excel export: Memory cleaned up successfully');
-        }, 100);
-    }
-
     public getInitialDate(): Date | null {
         return this.initialDate;
     }
@@ -1501,7 +1486,6 @@ class Inputs {
      * Updates the weekday checkboxes based on the current excludedWeekdays set
      */
     private updateWeekdayCheckboxes(): void {
-        // Get all weekday checkboxes
         const checkboxes = document.querySelectorAll<HTMLInputElement>('.weekday-checkbox input[type="checkbox"]');
         
         checkboxes.forEach(checkbox => {
